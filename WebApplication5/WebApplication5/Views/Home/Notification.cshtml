@@ -1,0 +1,126 @@
+﻿
+@{
+    ViewBag.Title = "Notification";
+}
+
+<table>
+    <tr>
+        <td class="msgcontainer">
+            Notification
+            <br />
+            <br />
+            <input type="text" id="message" value="Enter your message here" size="100" />
+            <input type="button" id="sendmessage" value="Send" />
+        </td>
+        <td>
+            <table class="userlistcontainer">
+                <thead>
+                    <tr>
+                        <td>User online</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <ul id="userlist"></ul>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2">
+            <table id="notiftable">
+                <thead>
+                    <tr>
+                        <td>
+                            UserID
+                        </td>
+                        <td>
+                            Message
+                        </td>
+                        <td>
+                            Time sent
+                        </td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </td>
+    </tr>
+</table>
+
+
+@section scripts {
+    <script src="~/Scripts/jquery.signalR-2.2.0.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <link href="~/css/notification.css" rel="stylesheet" />
+    <script>
+        $(function () {
+
+            var nhub = $.connection.notifHub;
+
+            var selectedusers = [];
+
+
+
+            nhub.client.addMessageToAdmin = function (userid, message, time) {
+
+                $('#notiftable tbody').append('<tr><td>' + userid + '</td><td>' + message + '</td><td>' + time + '</td></tr>');
+            };
+
+            nhub.client.addUser = function (userid) {
+
+                if ($('#userlist li:contains(' + userid + ')').length) {
+                    return;
+                    //(+) set li colour = backgroundColour;
+                } else {
+                    var newuser = document.createElement("li");
+                    var ul = document.getElementById("userlist");
+
+                    var anchor = document.createElement("a");
+                    anchor.innerHTML = htmlEncode(userid);
+                    anchor.onclick = function () {
+                        if (jQuery.inArray(this.innerHTML, selectedusers) >= 0) {
+                            var index = jQuery.inArray(this.innerHTML, selectedusers);
+                            this.style.backgroundColor = "#f8f8f8";
+                            selectedusers.splice(index, 1);
+                        } else {
+                            selectedusers.push(this.innerHTML);
+                            this.style.backgroundColor = "rgb(255, 201, 14)";
+                        }
+
+                    }
+
+                    newuser.appendChild(anchor);
+                    ul.appendChild(newuser);
+                }
+            }
+
+
+            $('#message').focus();
+            $.connection.hub.start().done(function () {
+
+                $('#message').click(function () {
+                    $('#message').val('');
+                });
+
+                $('#sendmessage').click(function () {
+                    if (selectedusers.length < 1) {
+                        alert("You must select an user");
+                    } else {
+                        var jsonString = JSON.stringify(selectedusers);
+                        nhub.server.sendMessage(jsonString, $('#message').val());
+                        $('#message').val('').focus();
+                    }
+                });
+            });
+        });
+
+        function htmlEncode(value) {
+            var encodedValue = $('<div />').text(value).html();
+            return encodedValue;
+        }
+    </script>
+}

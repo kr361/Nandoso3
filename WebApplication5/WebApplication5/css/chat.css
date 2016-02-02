@@ -1,0 +1,14 @@
+﻿.notificationBalloon {
+        border: 2px solid #ff6a00;
+        padding: 6px;
+        background-color: #ffd800;
+        text-align: center;
+        font-weight: bold;
+        width: 300px;
+        position: absolute;
+        display: none;
+    }
+
+ul {
+    list-style : none;
+}

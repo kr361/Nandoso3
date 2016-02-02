@@ -1,0 +1,110 @@
+﻿@{
+    ViewBag.Title = "Chat";
+}
+<div id="popUpContainer" class="notificationBalloon"></div>
+<h2>Chat</h2>
+<table>
+    <tr>
+        <td>
+            <form>
+                <input type="text" id="message" />
+                <input type="button" id="sendmessage" value="Send" />
+                <input type="radio" name="grouprad" value="g1" /> Group 1
+                <input type="radio" name="grouprad" value="g2" /> Group 2
+                <input type="radio" name="grouprad" value="g3" /> Group 3
+                <input type="radio" name="grouprad" value="all" /> All
+                <input type="hidden" id="groupselected" value="all" />
+            </form>
+        </td>
+        <td rowspan="2">
+            <ul id="group1list">
+                <li>Group1</li>
+            </ul>
+            <ul id="group2list">
+                <li>Group2</li>
+            </ul>
+            <ul id="group3list">
+                <li>Group3</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <table id="notiftable">
+                <thead>
+                    <tr>
+                        <td>
+                            Group
+                        </td>
+                        <td>
+                            Notification
+                        </td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </td>
+    </tr>
+</table>
+
+
+
+@section scripts {
+    <script src="~/Scripts/jquery.signalR-2.2.0.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <link href="~/css/chat.css" rel="stylesheet" />
+    <script>
+        $(function () {
+
+            var nhub = $.connection.notifHub;
+
+            nhub.client.receiveNotification = function (message) {
+                $("#popUpContainer").html(message);
+                $("#popUpContainer").slideDown(2000);
+                setTimeout('$("#popUpContainer").slideUp(2000);', 2000);
+            };
+
+            nhub.client.addNewMessageToPage = function (groupname, message) {
+                if (groupname == "g1") {
+                    $('#notiftable tbody').append('<tr><td>' + "Group1" + '</td><td>' + message + '</td></tr>');
+                } else if (groupname == "g2") {
+                    $('#notiftable tbody').append('<tr><td>' + "Group2" + '</td><td>' + message + '</td></tr>');
+                } else if (groupname == "g3") {
+                    $('#notiftable tbody').append('<tr><td>' + "Group3" + '</td><td>' + message + '</td></tr>');
+                } else {
+                    $('#notiftable tbody').append('<tr><td>' + "All" + '</td><td>' + message + '</td></tr>');
+                }
+            };
+
+            nhub.client.addUserToGroup = function (groupname, userid) {
+                if (groupname == "g1") {
+                    $('#group1list').append('<li>' + htmlEncode(userid) + '</li>');
+                } else if (groupname == "g2") {
+                    $('#group2list').append('<li>' + htmlEncode(userid) + '</li>');
+                } else if (groupname == "g3") {
+                    $('#group3list').append('<li>' + htmlEncode(userid) + '</li>');
+                } else {
+                    console.log("invalid groupname : " + groupname);
+                }
+            }
+
+            $('#message').focus();
+            $.connection.hub.start().done(function () {
+                $('input[name="grouprad"]').change(function () {
+                    $('#groupselected').val($('input[name="grouprad"]:checked').val());
+                });
+
+                $('#sendmessage').click(function () {
+                    nhub.server.send($('#groupselected').val(), $('#message').val());
+                    nhub.server.sendNotifications($('#groupselected').val(), "New Message:" + $('#message').val());
+                    $('#message').val('').focus();
+                });
+            });
+        });
+
+        function htmlEncode(value) {
+            var encodedValue = $('<div />').text(value).html();
+            return encodedValue;
+        }
+    </script>
+}
